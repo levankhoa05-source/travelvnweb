@@ -1,0 +1,187 @@
+{
+  "clientName": "Thunder Client",
+  "collectionName": "TravelVN API Integration Tests",
+  "dateExported": "2026-11-26T00:00:00.000Z",
+  "version": "1.2",
+  "requests": [
+    {
+      "name": "01 - Health Check",
+      "url": "http://localhost:3000/api/health",
+      "method": "GET",
+      "sortNum": 10000,
+      "tests": [
+        { "type": "res-code", "custom": "", "action": "equal", "value": "200" },
+        { "type": "json-query", "custom": "json.status", "action": "equal", "value": "ok" }
+      ]
+    },
+    {
+      "name": "02 - Login User Success",
+      "url": "http://localhost:3000/api/auth/login",
+      "method": "POST",
+      "sortNum": 20000,
+      "headers": [{ "name": "Content-Type", "value": "application/json" }],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"email\": \"nguyenvana@gmail.com\",\n  \"password\": \"123456\"\n}"
+      },
+      "tests": [
+        { "type": "res-code", "custom": "", "action": "equal", "value": "200" },
+        { "type": "json-query", "custom": "json.role", "action": "equal", "value": "USER" }
+      ]
+    },
+    {
+      "name": "03 - Login Partner Success",
+      "url": "http://localhost:3000/api/auth/login",
+      "method": "POST",
+      "sortNum": 25000,
+      "headers": [{ "name": "Content-Type", "value": "application/json" }],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"email\": \"phuongtrang@travel.vn\",\n  \"password\": \"123456\"\n}"
+      },
+      "tests": [
+        { "type": "res-code", "custom": "", "action": "equal", "value": "200" },
+        { "type": "json-query", "custom": "json.role", "action": "equal", "value": "PARTNER" }
+      ]
+    },
+    {
+      "name": "04 - Login Wrong Password (401)",
+      "url": "http://localhost:3000/api/auth/login",
+      "method": "POST",
+      "sortNum": 30000,
+      "headers": [{ "name": "Content-Type", "value": "application/json" }],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"email\": \"nguyenvana@gmail.com\",\n  \"password\": \"sai-mat-khau\"\n}"
+      },
+      "tests": [
+        { "type": "res-code", "custom": "", "action": "equal", "value": "401" }
+      ]
+    },
+    {
+      "name": "05 - Login Missing Field (400)",
+      "url": "http://localhost:3000/api/auth/login",
+      "method": "POST",
+      "sortNum": 40000,
+      "headers": [{ "name": "Content-Type", "value": "application/json" }],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"email\": \"nguyenvana@gmail.com\"\n}"
+      },
+      "tests": [
+        { "type": "res-code", "custom": "", "action": "equal", "value": "400" }
+      ]
+    },
+    {
+      "name": "06 - Get Trips",
+      "url": "http://localhost:3000/api/trips",
+      "method": "GET",
+      "sortNum": 50000,
+      "tests": [
+        { "type": "res-code", "custom": "", "action": "equal", "value": "200" },
+        { "type": "json-query", "custom": "json[0].from", "action": "istype", "value": "string" }
+      ]
+    },
+    {
+      "name": "07 - Get Hotels",
+      "url": "http://localhost:3000/api/hotels",
+      "method": "GET",
+      "sortNum": 60000,
+      "tests": [
+        { "type": "res-code", "custom": "", "action": "equal", "value": "200" },
+        { "type": "json-query", "custom": "json[0].name", "action": "istype", "value": "string" }
+      ]
+    },
+    {
+      "name": "08 - Get Vouchers",
+      "url": "http://localhost:3000/api/vouchers",
+      "method": "GET",
+      "sortNum": 70000,
+      "tests": [
+        { "type": "res-code", "custom": "", "action": "equal", "value": "200" },
+        { "type": "json-query", "custom": "json[0].code", "action": "istype", "value": "string" }
+      ]
+    },
+    {
+      "name": "09 - Create Ticket (201)",
+      "url": "http://localhost:3000/api/tickets",
+      "method": "POST",
+      "sortNum": 80000,
+      "headers": [{ "name": "Content-Type", "value": "application/json" }],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"id\": \"tk-thunder-01\",\n  \"userId\": \"u2\",\n  \"tripId\": \"t1\",\n  \"seatNumber\": \"A2\",\n  \"totalPrice\": 250000,\n  \"status\": \"BOOKED\"\n}"
+      },
+      "tests": [
+        { "type": "res-code", "custom": "", "action": "equal", "value": "201" },
+        { "type": "json-query", "custom": "json.success", "action": "equal", "value": "true" }
+      ]
+    },
+    {
+      "name": "10 - Get Tickets",
+      "url": "http://localhost:3000/api/tickets",
+      "method": "GET",
+      "sortNum": 90000,
+      "tests": [
+        { "type": "res-code", "custom": "", "action": "equal", "value": "200" }
+      ]
+    },
+    {
+      "name": "11 - Cancel Ticket (PATCH 200)",
+      "url": "http://localhost:3000/api/tickets/tk-thunder-01",
+      "method": "PATCH",
+      "sortNum": 100000,
+      "headers": [{ "name": "Content-Type", "value": "application/json" }],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"status\": \"CANCELLED\",\n  \"cancelReason\": \"Test Thunder Client\"\n}"
+      },
+      "tests": [
+        { "type": "res-code", "custom": "", "action": "equal", "value": "200" },
+        { "type": "json-query", "custom": "json.success", "action": "equal", "value": "true" }
+      ]
+    },
+    {
+      "name": "12 - Cancel Not Found Ticket (404)",
+      "url": "http://localhost:3000/api/tickets/tk-not-exist",
+      "method": "PATCH",
+      "sortNum": 110000,
+      "headers": [{ "name": "Content-Type", "value": "application/json" }],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"status\": \"CANCELLED\"\n}"
+      },
+      "tests": [
+        { "type": "res-code", "custom": "", "action": "equal", "value": "404" }
+      ]
+    },
+    {
+      "name": "13 - [DEMO-FAIL] Login sai mat khau nhung ky vong 200",
+      "url": "http://localhost:3000/api/auth/login",
+      "method": "POST",
+      "sortNum": 120000,
+      "headers": [{ "name": "Content-Type", "value": "application/json" }],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"email\": \"nguyenvana@gmail.com\",\n  \"password\": \"mat-khau-sai\"\n}"
+      },
+      "tests": [
+        { "type": "res-code", "custom": "", "action": "equal", "value": "200" }
+      ]
+    },
+    {
+      "name": "14 - [DEMO-FAIL] Tao ve thieu totalPrice nhung ky vong 201",
+      "url": "http://localhost:3000/api/tickets",
+      "method": "POST",
+      "sortNum": 130000,
+      "headers": [{ "name": "Content-Type", "value": "application/json" }],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"id\": \"tk-fail-01\",\n  \"userId\": \"u2\"\n}"
+      },
+      "tests": [
+        { "type": "res-code", "custom": "", "action": "equal", "value": "201" }
+      ]
+    }
+  ]
+}

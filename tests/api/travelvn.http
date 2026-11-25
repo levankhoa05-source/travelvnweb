@@ -1,0 +1,141 @@
+### Biến môi trường
+@baseUrl = http://localhost:3000
+
+### 1. Kiểm tra Health Check Server (200 OK)
+GET {{baseUrl}}/api/health
+Accept: application/json
+
+### 2. Đăng nhập thành công - Khách hàng (USER) (200 OK)
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "nguyenvana@gmail.com",
+  "password": "123456"
+}
+
+### 3. Đăng nhập thành công - Đối tác (PARTNER) (200 OK)
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "phuongtrang@travel.vn",
+  "password": "123456"
+}
+
+### 4. Đăng nhập thành công - Quản trị viên (ADMIN) (200 OK)
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@travel.vn",
+  "password": "123456"
+}
+
+### 5. [Negative / Số liệu sai] Đăng nhập sai mật khẩu (401 Unauthorized)
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "nguyenvana@gmail.com",
+  "password": "wrongpassword"
+}
+
+### 6. [Negative / Số liệu sai] Đăng nhập email không tồn tại (401 Unauthorized)
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "khongtontai@gmail.com",
+  "password": "123456"
+}
+
+### 7. [Negative / Thiếu trường] Đăng nhập thiếu password (400 Bad Request)
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "nguyenvana@gmail.com"
+}
+
+### 8. [Negative / Body rỗng] Đăng nhập không gửi dữ liệu (400 Bad Request)
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{}
+
+### 9. Lấy danh sách chuyến đi (200 OK)
+GET {{baseUrl}}/api/trips
+Accept: application/json
+
+### 10. Lấy danh sách khách sạn (200 OK)
+GET {{baseUrl}}/api/hotels
+Accept: application/json
+
+### 11. Lấy danh sách mã giảm giá (Vouchers) (200 OK)
+GET {{baseUrl}}/api/vouchers
+Accept: application/json
+
+### 12. Tạo vé chuyến đi mới thành công (201 Created)
+POST {{baseUrl}}/api/tickets
+Content-Type: application/json
+
+{
+  "id": "tk-api-001",
+  "userId": "u2",
+  "tripId": "t1",
+  "seatNumber": "A1",
+  "totalPrice": 250000,
+  "status": "BOOKED"
+}
+
+### 13. Tạo vé đặt phòng khách sạn thành công (201 Created)
+POST {{baseUrl}}/api/tickets
+Content-Type: application/json
+
+{
+  "id": "tk-api-hotel-001",
+  "userId": "u2",
+  "hotelId": "h1",
+  "roomType": "Standard Room",
+  "totalPrice": 850000,
+  "status": "BOOKED"
+}
+
+### 14. [Negative / Số liệu thiếu] Tạo vé thiếu totalPrice và id (400 Bad Request)
+POST {{baseUrl}}/api/tickets
+Content-Type: application/json
+
+{
+  "userId": "u2",
+  "seatNumber": "A9"
+}
+
+### 15. Lấy danh sách vé đã đặt (200 OK)
+GET {{baseUrl}}/api/tickets
+Accept: application/json
+
+### 16. Hủy vé theo ID thành công (200 OK)
+PATCH {{baseUrl}}/api/tickets/tk-api-001
+Content-Type: application/json
+
+{
+  "status": "CANCELLED",
+  "cancelReason": "Khách hàng hủy trước 24h"
+}
+
+### 17. [Negative / Thiếu trường] Hủy vé thiếu trường status (400 Bad Request)
+PATCH {{baseUrl}}/api/tickets/tk-api-001
+Content-Type: application/json
+
+{
+  "cancelReason": "Quên gửi status"
+}
+
+### 18. [Negative / Sai ID] Hủy vé với mã vé không tồn tại (404 Not Found)
+PATCH {{baseUrl}}/api/tickets/tk-khong-ton-tai-999
+Content-Type: application/json
+
+{
+  "status": "CANCELLED"
+}

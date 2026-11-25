@@ -5,6 +5,8 @@ import mysql from 'mysql2/promise';
 import { createServer as createViteServer } from 'vite';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { generateTrips, generateHotels } from './lib/mockData.ts';
+import { UserRole } from './types.ts';
 
 dotenv.config();
 
@@ -30,6 +32,7 @@ async function startServer() {
         password: process.env.DB_PASSWORD || '123456',
         database: process.env.DB_NAME || 'travel_app',
         port: Number(process.env.DB_PORT) || 3306,
+        connectTimeout: 1500,
         waitForConnections: true,
         connectionLimit: 10,
         queueLimit: 0
@@ -165,22 +168,43 @@ async function startServer() {
     console.log('Chưa cấu hình DB_HOST. Chạy ở chế độ Mock Data.');
   }
 
+  // In-memory Mock Store (dùng khi chưa có MySQL)
+  const mockUsers = [
+    { id: 'u1', name: 'Admin System', email: 'admin@travel.vn', password: '123456', role: UserRole.ADMIN, status: 'ACTIVE' },
+    { id: 'p1', name: 'Nhà xe Phương Trang', email: 'phuongtrang@travel.vn', password: '123456', role: UserRole.PARTNER, status: 'ACTIVE' },
+    { id: 'u2', name: 'Nguyễn Văn A', email: 'nguyenvana@gmail.com', password: '123456', role: UserRole.USER, status: 'ACTIVE' }
+  ];
+  const mockTrips = generateTrips();
+  const mockHotels = generateHotels();
+  const mockVouchers = [
+    { id: 'v1', code: 'TRAVEL2026', discountPercent: 10, maxDiscount: 500000, expiryDate: '2026-12-31 23:59:59' },
+    { id: 'v2', code: 'NEWBIE100', discountPercent: 20, maxDiscount: 100000, expiryDate: '2026-12-31 23:59:59' },
+    { id: 'v3', code: 'FLY20', discountPercent: 20, maxDiscount: 500000, expiryDate: '2026-12-31 23:59:59' }
+  ];
+  const mockTickets: any[] = [];
+
   // API Routes
   app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', dbConnected: !!pool });
+    res.json({ status: 'ok', dbConnected: !!pool, mode: pool ? 'mysql' : 'mock' });
   });
 
-  // Auth login from Database
+  // Auth login
   app.post('/api/auth/login', async (req, res) => {
-    if (!pool) {
-      return res.status(503).json({ error: 'Database not connected' });
+    const { email, password } = req.body || {};
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Missing email or password' });
     }
-    try {
-      const { email, password } = req.body || {};
-      if (!email || !password) {
-        return res.status(400).json({ error: 'Missing email or password' });
-      }
 
+    if (!pool) {
+      const matched = mockUsers.find(u => u.email === email && u.password === password);
+      if (!matched) {
+        return res.status(401).json({ error: 'Invalid credentials' });
+      }
+      const { password: _pwd, ...safeUser } = matched;
+      return res.json(safeUser);
+    }
+
+    try {
       const [rows]: any = await pool.query(
         'SELECT id, name, email, role, status FROM users WHERE email = ? AND password = ? LIMIT 1',
         [email, password]
@@ -204,7 +228,6 @@ async function startServer() {
         const [rows] = await pool.query('SELECT * FROM trips');
         const trips = (rows as any[]).map(row => ({
           ...row,
-          // Ép kiểu các trường số để frontend format tiền/ghế đúng
           price: typeof row.price === 'string' ? Number(row.price) : row.price,
           totalSeats: typeof row.totalSeats === 'string' ? Number(row.totalSeats) : row.totalSeats,
           availableSeats: typeof row.availableSeats === 'string' ? Number(row.availableSeats) : row.availableSeats,
@@ -221,7 +244,7 @@ async function startServer() {
         return res.status(500).json({ error: 'Database query failed' });
       }
     }
-    res.status(404).json({ error: 'Database not connected' });
+    return res.json(mockTrips);
   });
 
   // Fetch hotels
@@ -242,7 +265,7 @@ async function startServer() {
         return res.status(500).json({ error: 'Database query failed' });
       }
     }
-    res.status(404).json({ error: 'Database not connected' });
+    return res.json(mockHotels);
   });
 
   // Fetch vouchers
@@ -256,7 +279,7 @@ async function startServer() {
         return res.status(500).json({ error: 'Database query failed' });
       }
     }
-    res.status(404).json({ error: 'Database not connected' });
+    return res.json(mockVouchers);
   });
 
   // Fetch tickets
@@ -315,25 +338,76 @@ async function startServer() {
         return res.status(500).json({ error: 'Database query failed' });
       }
     }
-    res.status(404).json({ error: 'Database not connected' });
+    return res.json(mockTickets);
   });
 
   // Create ticket
   app.post('/api/tickets', async (req, res) => {
+    const { id, userId, tripId, hotelId, voucherId, seatNumber, roomType, totalPrice, status, cancelReason } = req.body || {};
+    if (!id || !userId || totalPrice === undefined) {
+      return res.status(400).json({ error: 'Missing required ticket fields (id, userId, totalPrice)' });
+    }
+
     if (pool) {
       try {
-        const { id, userId, tripId, hotelId, voucherId, seatNumber, roomType, totalPrice, status, cancelReason } = req.body;
         await pool.query(
           'INSERT INTO tickets (id, userId, tripId, hotelId, voucherId, seatNumber, roomType, totalPrice, status, cancelReason) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
           [id, userId, tripId || null, hotelId || null, voucherId || null, seatNumber || null, roomType || null, totalPrice, status || 'BOOKED', cancelReason || null]
         );
-        return res.json({ success: true });
+        return res.status(201).json({ success: true, id });
       } catch (error) {
         console.error('DB Error:', error);
         return res.status(500).json({ error: 'Database query failed' });
       }
     }
-    res.status(404).json({ error: 'Database not connected' });
+
+    const newTicket = {
+      id,
+      userId,
+      tripId: tripId || null,
+      hotelId: hotelId || null,
+      voucherId: voucherId || null,
+      seatNumber: seatNumber || null,
+      roomType: roomType || null,
+      totalPrice: Number(totalPrice),
+      status: status || 'BOOKED',
+      cancelReason: cancelReason || null,
+      bookingDate: new Date().toISOString()
+    };
+    mockTickets.unshift(newTicket);
+    return res.status(201).json({ success: true, ticket: newTicket });
+  });
+
+  // Update ticket status (e.g., Cancel ticket)
+  app.patch('/api/tickets/:id', async (req, res) => {
+    const { id } = req.params;
+    const { status, cancelReason } = req.body || {};
+    if (!status) {
+      return res.status(400).json({ error: 'Missing status' });
+    }
+
+    if (pool) {
+      try {
+        const [result]: any = await pool.query(
+          'UPDATE tickets SET status = ?, cancelReason = ? WHERE id = ?',
+          [status, cancelReason || null, id]
+        );
+        if (result.affectedRows === 0) {
+          return res.status(404).json({ error: 'Ticket not found' });
+        }
+        return res.json({ success: true, id, status });
+      } catch (error) {
+        console.error('DB Error:', error);
+        return res.status(500).json({ error: 'Database query failed' });
+      }
+    }
+
+    const idx = mockTickets.findIndex(t => t.id === id);
+    if (idx === -1) {
+      return res.status(404).json({ error: 'Ticket not found' });
+    }
+    mockTickets[idx] = { ...mockTickets[idx], status, cancelReason: cancelReason || null };
+    return res.json({ success: true, ticket: mockTickets[idx] });
   });
 
   // Vite middleware for development
