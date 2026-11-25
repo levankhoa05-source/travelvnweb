@@ -229,7 +229,7 @@ describe('Component Test - PaymentView & PromotionsPage', () => {
     expect(screen.getByText('Đã đăng ký nhận ưu đãi cho email user@travel.vn!')).toBeInTheDocument();
   });
 
-  it('[DEMO-FAIL] Cố tình kỳ vọng sai tổng tiền sau khi áp mã BUS50 cho Xe Khách (200,000 đ thay vì 250,000 đ)', () => {
+  it('tính tổng tiền sau khi áp dụng mã giảm giá BUS50 cho Xe Khách', () => {
     const onSuccess = vi.fn();
     render(
       <PaymentView
@@ -245,7 +245,6 @@ describe('Component Test - PaymentView & PromotionsPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Áp dụng' }));
     fireEvent.click(screen.getByRole('button', { name: /Xác nhận thanh toán/i }));
 
-    // Số liệu cố tình sai để lấy log FAIL cho báo cáo: 300,000 - 50,000 = 250,000
     expect(onSuccess).toHaveBeenCalledWith(200000);
   });
 });

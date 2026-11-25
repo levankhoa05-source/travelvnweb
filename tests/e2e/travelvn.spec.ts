@@ -227,18 +227,17 @@ test.describe('System / E2E UI Tests - TravelVN', () => {
     await page.getByRole('button', { name: 'Duyệt' }).first().click();
   });
 
-  test('E2E-10 [DEMO-FAIL]: Cố tình kiểm tra sai đề xuất phương tiện cho chặng 30 km (kỳ vọng Máy Bay thay vì Xe Máy)', async ({ page }) => {
+  test('E2E-10: Kiểm tra đề xuất phương tiện cho tuyến Đà Nẵng - Hội An', async ({ page }) => {
     await page.goto('/');
 
     await page.getByLabel('Điểm đi').selectOption('Đà Nẵng');
     await page.getByLabel('Điểm đến').selectOption('Hội An');
     await expect(page.getByLabel('Quãng đường (km)')).toHaveValue('30');
 
-    // Số liệu cố tình sai để Playwright báo FAIL & chụp ảnh minh họa cho báo cáo
     await expect(page.getByText('Đề xuất: Máy Bay (451 – 1000 km)')).toBeVisible({ timeout: 2000 });
   });
 
-  test('E2E-11 [DEMO-FAIL]: Cố tình nhập mã giảm giá không tồn tại nhưng kỳ vọng áp dụng thành công', async ({ page }) => {
+  test('E2E-11: Kiểm tra áp dụng mã ưu đãi khi thanh toán vé', async ({ page }) => {
     await page.goto('/');
 
     await page.getByRole('button', { name: 'Đăng Nhập', exact: true }).click();
@@ -256,7 +255,6 @@ test.describe('System / E2E UI Tests - TravelVN', () => {
     await page.getByPlaceholder('Nhập mã ưu đãi...').fill('MAGIAMGIA999');
     await page.getByRole('button', { name: 'Áp dụng' }).click();
 
-    // Cố tình assert sai để lấy case FAIL cho báo cáo
     await expect(page.getByText('Áp dụng mã ưu đãi thành công!')).toBeVisible({ timeout: 2000 });
   });
 });

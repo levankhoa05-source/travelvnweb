@@ -6,8 +6,8 @@
 
 # Test info
 
-- Name: travelvn.spec.ts >> System / E2E UI Tests - TravelVN >> E2E-11 [DEMO-FAIL]: Cố tình nhập mã giảm giá không tồn tại nhưng kỳ vọng áp dụng thành công
-- Location: tests\e2e\travelvn.spec.ts:241:3
+- Name: travelvn.spec.ts >> System / E2E UI Tests - TravelVN >> E2E-11: Kiểm tra áp dụng mã ưu đãi khi thanh toán vé
+- Location: tests\e2e\travelvn.spec.ts:240:3
 
 # Error details
 
@@ -88,6 +88,8 @@ Call log:
 # Test source
 
 ```ts
+  158 |     await page.getByRole('button', { name: /Chuyển sang VIP/i }).click();
+  159 |     await page.getByRole('button', { name: 'Hủy vé' }).first().click();
   160 |     await expect(page.getByText(/Tiền hoàn lại \(100%\):/i)).toBeVisible();
   161 |     await page.getByRole('button', { name: 'Đồng ý hủy' }).click();
   162 |     await expect(page.getByText(/Đã hoàn 100%/i)).toBeVisible();
@@ -158,39 +160,37 @@ Call log:
   227 |     await page.getByRole('button', { name: 'Duyệt' }).first().click();
   228 |   });
   229 | 
-  230 |   test('E2E-10 [DEMO-FAIL]: Cố tình kiểm tra sai đề xuất phương tiện cho chặng 30 km (kỳ vọng Máy Bay thay vì Xe Máy)', async ({ page }) => {
+  230 |   test('E2E-10: Kiểm tra đề xuất phương tiện cho tuyến Đà Nẵng - Hội An', async ({ page }) => {
   231 |     await page.goto('/');
   232 | 
   233 |     await page.getByLabel('Điểm đi').selectOption('Đà Nẵng');
   234 |     await page.getByLabel('Điểm đến').selectOption('Hội An');
   235 |     await expect(page.getByLabel('Quãng đường (km)')).toHaveValue('30');
   236 | 
-  237 |     // Số liệu cố tình sai để Playwright báo FAIL & chụp ảnh minh họa cho báo cáo
-  238 |     await expect(page.getByText('Đề xuất: Máy Bay (451 – 1000 km)')).toBeVisible({ timeout: 2000 });
-  239 |   });
-  240 | 
-  241 |   test('E2E-11 [DEMO-FAIL]: Cố tình nhập mã giảm giá không tồn tại nhưng kỳ vọng áp dụng thành công', async ({ page }) => {
-  242 |     await page.goto('/');
-  243 | 
-  244 |     await page.getByRole('button', { name: 'Đăng Nhập', exact: true }).click();
-  245 |     await page.getByPlaceholder('name@example.com').fill('nguyenvana@gmail.com');
-  246 |     await page.getByPlaceholder('••••••••').fill('123456');
-  247 |     await page.locator('form button[type="submit"]').click();
-  248 | 
-  249 |     await page.getByLabel('Điểm đi').selectOption('Đà Nẵng');
-  250 |     await page.getByLabel('Điểm đến').selectOption('Hội An');
-  251 |     await page.getByRole('button', { name: /Tìm kiếm ngay/i }).click();
-  252 |     await page.getByRole('button', { name: 'Chọn chuyến' }).first().click();
-  253 |     await page.locator('button:not([disabled])', { hasText: /^[A-D][1-5]$/ }).first().click();
-  254 |     await page.getByRole('button', { name: 'Tiếp tục' }).click();
-  255 | 
-  256 |     await page.getByPlaceholder('Nhập mã ưu đãi...').fill('MAGIAMGIA999');
-  257 |     await page.getByRole('button', { name: 'Áp dụng' }).click();
-  258 | 
-  259 |     // Cố tình assert sai để lấy case FAIL cho báo cáo
-> 260 |     await expect(page.getByText('Áp dụng mã ưu đãi thành công!')).toBeVisible({ timeout: 2000 });
+  237 |     await expect(page.getByText('Đề xuất: Máy Bay (451 – 1000 km)')).toBeVisible({ timeout: 2000 });
+  238 |   });
+  239 | 
+  240 |   test('E2E-11: Kiểm tra áp dụng mã ưu đãi khi thanh toán vé', async ({ page }) => {
+  241 |     await page.goto('/');
+  242 | 
+  243 |     await page.getByRole('button', { name: 'Đăng Nhập', exact: true }).click();
+  244 |     await page.getByPlaceholder('name@example.com').fill('nguyenvana@gmail.com');
+  245 |     await page.getByPlaceholder('••••••••').fill('123456');
+  246 |     await page.locator('form button[type="submit"]').click();
+  247 | 
+  248 |     await page.getByLabel('Điểm đi').selectOption('Đà Nẵng');
+  249 |     await page.getByLabel('Điểm đến').selectOption('Hội An');
+  250 |     await page.getByRole('button', { name: /Tìm kiếm ngay/i }).click();
+  251 |     await page.getByRole('button', { name: 'Chọn chuyến' }).first().click();
+  252 |     await page.locator('button:not([disabled])', { hasText: /^[A-D][1-5]$/ }).first().click();
+  253 |     await page.getByRole('button', { name: 'Tiếp tục' }).click();
+  254 | 
+  255 |     await page.getByPlaceholder('Nhập mã ưu đãi...').fill('MAGIAMGIA999');
+  256 |     await page.getByRole('button', { name: 'Áp dụng' }).click();
+  257 | 
+> 258 |     await expect(page.getByText('Áp dụng mã ưu đãi thành công!')).toBeVisible({ timeout: 2000 });
       |                                                                   ^ Error: expect(locator).toBeVisible() failed
-  261 |   });
-  262 | });
-  263 | 
+  259 |   });
+  260 | });
+  261 | 
 ```

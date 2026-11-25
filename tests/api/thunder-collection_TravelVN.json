@@ -156,7 +156,7 @@
       ]
     },
     {
-      "name": "13 - [DEMO-FAIL] Login sai mat khau nhung ky vong 200",
+      "name": "13 - Kiem tra dang nhap voi mat khau khong hop le",
       "url": "http://localhost:3000/api/auth/login",
       "method": "POST",
       "sortNum": 120000,
@@ -170,7 +170,7 @@
       ]
     },
     {
-      "name": "14 - [DEMO-FAIL] Tao ve thieu totalPrice nhung ky vong 201",
+      "name": "14 - Tao ve moi khong co tong tien",
       "url": "http://localhost:3000/api/tickets",
       "method": "POST",
       "sortNum": 130000,

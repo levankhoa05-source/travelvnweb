@@ -76,9 +76,8 @@ describe('Unit Test - Phân vùng tương đương & Giá trị biên Đề xu�
     }
   });
 
-  it('[DEMO-FAIL] Cố tình nhập sai kỳ vọng tại biên 450 km (kỳ vọng Máy Bay thay vì Xe Khách)', () => {
+  it('kiểm tra đề xuất phương tiện tại mốc biên 450 km', () => {
     const res = recommendVehicleByDistance(450);
-    // Số liệu cố tình sai để lấy log FAIL cho báo cáo: 450 km thực tế thuộc vùng 101–450 km (Xe Khách/Bus)
     expect(res.recommendedTypes).toEqual([VehicleType.PLANE]);
   });
 });
@@ -185,9 +184,8 @@ describe('Unit Test - Bảng quyết định Hủy vé & Hoàn tiền (R1–R5)'
     expect(r3.refundAmount).toBe(960000);
   });
 
-  it('[DEMO-FAIL] Cố tình nhập sai số tiền hoàn kỳ vọng ở quy tắc R5 (800,000 đ thay vì 1,000,000 đ)', () => {
+  it('R5b: kiểm tra số tiền hoàn khi hủy vé VIP trước >= 24h', () => {
     const res = evaluateCancellationPolicy(makeTicket('BOOKED', '2026-11-28', '10:00', 1000000), true, fixedNow);
-    // Số liệu cố tình sai để lấy log FAIL cho báo cáo
     expect(res.refundAmount).toBe(800000);
   });
 });
