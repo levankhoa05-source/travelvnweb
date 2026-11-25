@@ -1,4 +1,5 @@
 export enum VehicleType {
+  MOTORBIKE = 'Xe Máy',
   BUS = 'Xe Khách',
   COACH = 'Bus Giường Nằm',
   PLANE = 'Máy Bay'
@@ -22,6 +23,7 @@ export interface User {
   status?: 'ACTIVE' | 'BANNED';
   banUntil?: string | null;
   phone?: string;
+  isVip?: boolean;
 }
 
 export interface TripStop {
@@ -55,6 +57,8 @@ export interface Trip {
   stops: TripStop[]; 
   amenities: string[]; 
   partnerId?: string;
+  partnerName?: string;
+  distance?: number;
   status: 'APPROVED' | 'PENDING' | 'REJECTED' | 'CANCELLED';
   transportDetails?: TransportDetails;
 }
@@ -91,6 +95,9 @@ export interface Ticket {
   bookingDate: string;
   status: 'BOOKED' | 'PAID' | 'CANCELLED';
   cancelReason?: string;
+  refundPercent?: number;
+  refundAmount?: number;
+  checkInDate?: string;
   tripDetails?: Trip; 
   hotelDetails?: Hotel; 
   userDetails?: User;

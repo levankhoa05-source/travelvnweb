@@ -1,9 +1,10 @@
-import React from 'react';
-import { Bus, Plane, Building2, CheckCircle, Tag, Phone, CreditCard, History, Calendar, ArrowRight, MapPin, Building, Home, TicketPercent, Copy } from 'lucide-react';
+import React, { useState } from 'react';
+import { Bus, Plane, Bike, Building2, CheckCircle, Tag, Phone, CreditCard, History, Calendar, ArrowRight, MapPin, Building, Home, TicketPercent, Copy, Sparkles } from 'lucide-react';
 import { Trip, Hotel, VehicleType, SearchMode, AppView, User, Ticket } from '../types';
 import { SearchHero, PromotionSection, PopularDestinations } from './HomeWidgets';
 import { TripCard, HotelCard } from './Cards';
 import { SeatSelector } from './Modals';
+import { recommendVehicleByDistance, evaluateCancellationPolicy } from '../lib/mockData';
 
 interface HomeViewProps {
   isSearching: boolean;
@@ -12,6 +13,8 @@ interface HomeViewProps {
   setSearchMode: (val: SearchMode) => void;
   filteredTrips: Trip[];
   currentSearchType: string;
+  searchDistance: number | null;
+  user: User | null;
   handleStartBooking: (trip: Trip) => void;
   handleViewDetails: (trip: Trip) => void;
   suggestedHotels: Hotel[];
@@ -35,6 +38,8 @@ export const HomeView: React.FC<HomeViewProps> = ({
   setSearchMode,
   filteredTrips,
   currentSearchType,
+  searchDistance,
+  user,
   handleStartBooking,
   handleViewDetails,
   suggestedHotels,
@@ -50,6 +55,11 @@ export const HomeView: React.FC<HomeViewProps> = ({
   handleSearch,
   savedPromos
 }) => {
+  const distanceRecommendation =
+    searchDistance !== null && searchDistance > 0
+      ? recommendVehicleByDistance(searchDistance)
+      : null;
+
   return (
     <>
       <SearchHero onSearch={handleSearch} />
@@ -64,6 +74,16 @@ export const HomeView: React.FC<HomeViewProps> = ({
                </h2>
                <button onClick={() => setIsSearching(false)} className="text-blue-600 hover:underline">Xóa bộ lọc</button>
              </div>
+
+             {searchMode === 'transport' && distanceRecommendation && (
+               <div className="mb-6 bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-center gap-3 text-sm text-slate-700">
+                 <Sparkles className="h-5 w-5 text-blue-600 shrink-0" />
+                 <div>
+                   <span className="font-bold text-blue-800">{distanceRecommendation.label}: </span>
+                   <span>{distanceRecommendation.message}</span>
+                 </div>
+               </div>
+             )}
              
              {/* TRANSPORT RESULTS */}
              {searchMode === 'transport' && (
@@ -82,6 +102,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                              <TripCard 
                                key={trip.id} 
                                trip={trip} 
+                               user={user}
                                onBook={handleStartBooking}
                                onViewDetails={handleViewDetails}
                              />
@@ -89,6 +110,46 @@ export const HomeView: React.FC<HomeViewProps> = ({
                          </div>
                        ) : (
                          <>
+                           {filteredTrips.some(t => t.vehicleType === VehicleType.MOTORBIKE) && (
+                             <div>
+                                <h3 className="text-xl font-bold text-slate-700 mb-4 flex items-center gap-2">
+                                  <div className="p-2 bg-emerald-100 rounded-lg text-emerald-600"><Bike size={20}/></div>
+                                  Xe Máy (Quãng đường ngắn 1–100 km)
+                                </h3>
+                                <div className="grid gap-4">
+                                   {filteredTrips.filter(t => t.vehicleType === VehicleType.MOTORBIKE).map(trip => (
+                                     <TripCard 
+                                        key={trip.id} 
+                                        trip={trip} 
+                                        user={user}
+                                        onBook={handleStartBooking}
+                                        onViewDetails={handleViewDetails}
+                                      />
+                                   ))}
+                                </div>
+                             </div>
+                           )}
+
+                           {filteredTrips.some(t => t.vehicleType === VehicleType.BUS || t.vehicleType === VehicleType.COACH) && (
+                             <div>
+                                <h3 className="text-xl font-bold text-slate-700 mb-4 flex items-center gap-2">
+                                  <div className="p-2 bg-orange-100 rounded-lg text-orange-600"><Bus size={20}/></div>
+                                  Xe Khách & Bus
+                                </h3>
+                                <div className="grid gap-4">
+                                   {filteredTrips.filter(t => t.vehicleType === VehicleType.BUS || t.vehicleType === VehicleType.COACH).map(trip => (
+                                     <TripCard 
+                                      key={trip.id} 
+                                      trip={trip} 
+                                      user={user}
+                                      onBook={handleStartBooking}
+                                      onViewDetails={handleViewDetails}
+                                     />
+                                   ))}
+                                </div>
+                             </div>
+                           )}
+
                            {filteredTrips.some(t => t.vehicleType === VehicleType.PLANE) && (
                              <div>
                                 <h3 className="text-xl font-bold text-slate-700 mb-4 flex items-center gap-2">
@@ -100,28 +161,10 @@ export const HomeView: React.FC<HomeViewProps> = ({
                                      <TripCard 
                                         key={trip.id} 
                                         trip={trip} 
+                                        user={user}
                                         onBook={handleStartBooking}
                                         onViewDetails={handleViewDetails}
                                       />
-                                   ))}
-                                </div>
-                             </div>
-                           )}
-
-                           {filteredTrips.some(t => t.vehicleType !== VehicleType.PLANE) && (
-                             <div className={filteredTrips.some(t => t.vehicleType === VehicleType.PLANE) ? "mt-8" : ""}>
-                                <h3 className="text-xl font-bold text-slate-700 mb-4 flex items-center gap-2">
-                                  <div className="p-2 bg-orange-100 rounded-lg text-orange-600"><Bus size={20}/></div>
-                                  Xe Khách & Bus
-                                </h3>
-                                <div className="grid gap-4">
-                                   {filteredTrips.filter(t => t.vehicleType !== VehicleType.PLANE).map(trip => (
-                                     <TripCard 
-                                      key={trip.id} 
-                                      trip={trip} 
-                                      onBook={handleStartBooking}
-                                      onViewDetails={handleViewDetails}
-                                     />
                                    ))}
                                 </div>
                              </div>
@@ -141,7 +184,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                        {suggestedHotels.map(hotel => (
                          <div key={hotel.id} className="h-full">
-                            <HotelCard hotel={hotel} onBook={handleStartHotelBooking} />
+                            <HotelCard hotel={hotel} user={user} onBook={handleStartHotelBooking} />
                          </div>
                        ))}
                      </div>
@@ -220,7 +263,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                         </div>
                      ) : (
                         displayedHotels.map(hotel => (
-                          <HotelCard key={hotel.id} hotel={hotel} onBook={handleStartHotelBooking} />
+                          <HotelCard key={hotel.id} hotel={hotel} user={user} onBook={handleStartHotelBooking} />
                         ))
                      )}
                    </div>
@@ -288,26 +331,30 @@ export const PaymentView: React.FC<PaymentViewProps> = ({
   const [promoError, setPromoError] = React.useState('');
 
   const handleApplyPromo = () => {
-  if (promoCode === 'FLY20' && selectedTrip && selectedTrip.vehicleType === VehicleType.PLANE) {
-  setDiscount(0.2);
-  setPromoError('');
-} else if (
-  promoCode === 'BUS50' && 
-  selectedTrip && 
-  (selectedTrip.vehicleType === VehicleType.BUS || selectedTrip.vehicleType === VehicleType.COACH)
-) {
-  setDiscount(50000);
-  setPromoError('');
-} else if (promoCode === 'HOTEL2024' && selectedHotel) {
+    const code = promoCode.trim().toUpperCase();
+    if (code === 'FLY20' && selectedTrip && selectedTrip.vehicleType === VehicleType.PLANE) {
+      setDiscount(0.2);
+      setPromoError('');
+    } else if (
+      code === 'BUS50' &&
+      selectedTrip &&
+      (selectedTrip.vehicleType === VehicleType.BUS || selectedTrip.vehicleType === VehicleType.COACH)
+    ) {
+      setDiscount(50000);
+      setPromoError('');
+    } else if (code === 'HOTEL2024' && selectedHotel) {
       setDiscount(0.15);
       setPromoError('');
-    } else if (promoCode === 'NEWBIE100') {
-      setDiscount(100000);
-      setPromoError('');
-    } else if (promoCode === 'WEEKEND') {
+    } else if (code === 'TRAVEL2026') {
       setDiscount(0.1);
       setPromoError('');
-    } else if (promoCode === 'VIPPRO') {
+    } else if (code === 'NEWBIE100') {
+      setDiscount(100000);
+      setPromoError('');
+    } else if (code === 'WEEKEND') {
+      setDiscount(0.1);
+      setPromoError('');
+    } else if (code === 'VIPPRO') {
       setDiscount(0.05);
       setPromoError('');
     } else {
@@ -451,17 +498,34 @@ interface HistoryViewProps {
   tickets: Ticket[];
   setView: (view: AppView) => void;
   setCancellingTicketId: (id: string) => void;
+  onToggleVip?: () => void;
 }
 
-export const HistoryView: React.FC<HistoryViewProps> = ({ user, tickets, setView, setCancellingTicketId }) => {
+export const HistoryView: React.FC<HistoryViewProps> = ({ user, tickets, setView, setCancellingTicketId, onToggleVip }) => {
   const userTickets = tickets.filter(t => t.userId === user.id).sort((a, b) => new Date(b.bookingDate).getTime() - new Date(a.bookingDate).getTime());
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-12 animate-in fade-in duration-500">
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <h2 className="text-3xl font-bold text-slate-800 flex items-center gap-3">
           <History className="h-8 w-8 text-blue-600" /> Lịch sử giao dịch
         </h2>
+        <div className="flex items-center gap-3 bg-white border border-slate-200 px-4 py-2 rounded-xl shadow-sm">
+          <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
+            user.isVip ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-slate-100 text-slate-700'
+          }`}>
+            {user.isVip ? '★ Thành viên VIP' : 'Thành viên Thường'}
+          </span>
+          {onToggleVip && (
+            <button
+              type="button"
+              onClick={onToggleVip}
+              className="text-xs font-semibold text-blue-600 hover:underline"
+            >
+              Chuyển sang {user.isVip ? 'Thường' : 'VIP'}
+            </button>
+          )}
+        </div>
       </div>
       
       <div className="space-y-6 mb-8">
@@ -481,10 +545,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ user, tickets, setView
           </div>
         ) : (
           userTickets.map(ticket => {
-            const isCancellable = () => {
-              if (ticket.status !== 'BOOKED') return false;
-              return true; // Allow cancellation anytime for demo
-            };
+            const policy = evaluateCancellationPolicy(ticket, !!user.isVip);
 
             return (
               <div key={ticket.id} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 hover:shadow-md transition-shadow">
@@ -504,7 +565,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ user, tickets, setView
                     <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
                       <div className="flex items-center gap-3 mb-2">
                         <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
-                          {ticket.tripDetails.vehicleType === VehicleType.PLANE ? <Plane className="h-5 w-5" /> : <Bus className="h-5 w-5" />}
+                          {ticket.tripDetails.vehicleType === VehicleType.PLANE ? <Plane className="h-5 w-5" /> : ticket.tripDetails.vehicleType === VehicleType.MOTORBIKE ? <Bike className="h-5 w-5" /> : <Bus className="h-5 w-5" />}
                         </div>
                         <div>
                           <h4 className="font-bold text-lg text-slate-800 flex items-center gap-2">
@@ -553,12 +614,32 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ user, tickets, setView
                           <p className="text-sm font-medium text-slate-800">{ticket.roomType}</p>
                         </div>
                         <div>
-                          <p className="text-xs text-slate-500 mb-1 uppercase font-semibold">Địa chỉ</p>
-                          <p className="text-sm font-medium text-slate-800 truncate" title={ticket.hotelDetails.address}>{ticket.hotelDetails.address}</p>
+                          <p className="text-xs text-slate-500 mb-1 uppercase font-semibold">Ngày nhận phòng</p>
+                          <p className="text-sm font-medium text-slate-800">{ticket.checkInDate || 'Theo lịch đặt'}</p>
                         </div>
                       </div>
                     </div>
                   ) : null}
+
+                  {ticket.status === 'BOOKED' && (
+                    <div className={`mt-3 text-xs px-3 py-1.5 rounded-lg border inline-block ${
+                      policy.allowed
+                        ? 'bg-blue-50 text-blue-700 border-blue-200'
+                        : 'bg-amber-50 text-amber-700 border-amber-200'
+                    }`}>
+                      {policy.isOver24h ? 'Trước khởi hành ≥ 24h' : 'Còn < 24h trước khởi hành'} •{' '}
+                      {policy.allowed
+                        ? `Hủy hoàn ${policy.refundPercent}% (${policy.refundAmount.toLocaleString()} đ)`
+                        : 'Không hỗ trợ hủy cho tài khoản Thường'}
+                    </div>
+                  )}
+
+                  {ticket.status === 'CANCELLED' && ticket.refundPercent !== undefined && (
+                    <div className="mt-3 text-xs px-3 py-1.5 rounded-lg border bg-emerald-50 text-emerald-700 border-emerald-200 inline-block">
+                      Đã hoàn {ticket.refundPercent}% ({(ticket.refundAmount || 0).toLocaleString()} đ)
+                      {ticket.refundPercent === 80 ? ' • Đã trừ 20% phí hủy' : ''}
+                    </div>
+                  )}
                   
                 </div>
                 <div className="flex flex-row md:flex-col items-center md:items-end justify-between w-full md:w-auto gap-4 md:gap-2 border-t md:border-t-0 md:border-l border-slate-100 pt-4 md:pt-0 md:pl-6">
@@ -570,18 +651,16 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ user, tickets, setView
                   </div>
                   
                   {ticket.status === 'BOOKED' && (
-                    isCancellable() ? (
-                      <button 
-                        onClick={() => setCancellingTicketId(ticket.id)}
-                        className="px-4 py-2 bg-white border border-red-200 text-red-600 rounded-lg text-sm font-bold hover:bg-red-50 transition"
-                      >
-                        Hủy vé
-                      </button>
-                    ) : (
-                      <div className="text-xs text-amber-600 bg-amber-50 px-3 py-2 rounded-lg border border-amber-100 text-center max-w-[150px]">
-                        Không thể hủy (quá hạn 24h)
-                      </div>
-                    )
+                    <button 
+                      onClick={() => setCancellingTicketId(ticket.id)}
+                      className={`px-4 py-2 rounded-lg text-sm font-bold transition border ${
+                        policy.allowed
+                          ? 'bg-white border-red-200 text-red-600 hover:bg-red-50'
+                          : 'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100'
+                      }`}
+                    >
+                      Hủy vé
+                    </button>
                   )}
                 </div>
               </div>
@@ -605,7 +684,25 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ user, tickets, setView
   );
 };
 
-export const PromotionsPage: React.FC<{ onCopy: (code: string) => void, savedPromos: string[] }> = ({ onCopy, savedPromos }) => {
+export const PromotionsPage: React.FC<{
+  onCopy: (code: string) => void;
+  savedPromos: string[];
+  showNotification?: (msg: string, type?: 'success' | 'error' | 'info') => void;
+}> = ({ onCopy, savedPromos, showNotification }) => {
+  const [newsletterEmail, setNewsletterEmail] = useState('');
+  const [newsletterMsg, setNewsletterMsg] = useState<{ text: string; isError: boolean } | null>(null);
+
+  const handleSubscribeNewsletter = () => {
+    const trimmed = newsletterEmail.trim();
+    if (!trimmed || !/^\S+@\S+\.\S+$/.test(trimmed)) {
+      setNewsletterMsg({ text: 'Vui lòng nhập địa chỉ email hợp lệ.', isError: true });
+      return;
+    }
+    setNewsletterMsg({ text: `Đã đăng ký nhận ưu đãi cho email ${trimmed}!`, isError: false });
+    setNewsletterEmail('');
+    showNotification?.('Đăng ký nhận bản tin ưu đãi thành công!', 'success');
+  };
+
   const promotions = [
     { title: 'Giảm 20% vé máy bay', code: 'FLY20', color: 'bg-blue-500', desc: 'Áp dụng cho mọi chuyến bay nội địa.', validUntil: '30/04/2026' },
     { title: 'Giảm 50k vé xe khách', code: 'BUS50', color: 'bg-orange-500', desc: 'Áp dụng cho các tuyến xe khách đường dài.', validUntil: '15/05/2026' },
@@ -672,13 +769,24 @@ export const PromotionsPage: React.FC<{ onCopy: (code: string) => void, savedPro
         <div className="flex flex-col sm:flex-row gap-4 justify-center max-w-md mx-auto relative z-10">
           <input 
             type="email" 
+            value={newsletterEmail}
+            onChange={(e) => { setNewsletterEmail(e.target.value); setNewsletterMsg(null); }}
             placeholder="Nhập email của bạn..." 
             className="px-6 py-3 rounded-full text-slate-800 w-full focus:outline-none focus:ring-4 focus:ring-blue-400/50"
           />
-          <button className="bg-white text-blue-600 px-8 py-3 rounded-full font-bold hover:bg-blue-50 transition-colors whitespace-nowrap shadow-md">
+          <button 
+            type="button"
+            onClick={handleSubscribeNewsletter}
+            className="bg-white text-blue-600 px-8 py-3 rounded-full font-bold hover:bg-blue-50 transition-colors whitespace-nowrap shadow-md"
+          >
             Đăng ký ngay
           </button>
         </div>
+        {newsletterMsg && (
+          <p className={`mt-4 text-sm font-medium relative z-10 ${newsletterMsg.isError ? 'text-amber-200' : 'text-emerald-200'}`}>
+            {newsletterMsg.text}
+          </p>
+        )}
       </div>
     </div>
   );

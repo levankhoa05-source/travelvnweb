@@ -1,31 +1,52 @@
 import React from 'react';
-import { MapPin, Star, Clock, Users, Wifi, Coffee, Utensils, CheckCircle, ArrowRight, Building2, Bed, Plane, Bus, Info } from 'lucide-react';
+import { MapPin, Star, Clock, Users, Wifi, Coffee, Utensils, CheckCircle, ArrowRight, Building2, Bed, Plane, Bus, Bike, Info, Sparkles } from 'lucide-react';
 import { Trip, Hotel, VehicleType, User, UserRole } from '../types';
+import { getRouteDistance, recommendVehicleByDistance } from '../lib/mockData';
 
 export const TripCard: React.FC<{ trip: Trip, onBook: (t: Trip) => void, onViewDetails: (t: Trip) => void, user?: User | null }> = ({ trip, onBook, onViewDetails, user }) => {
   const isPlane = trip.vehicleType === VehicleType.PLANE;
+  const isMotorbike = trip.vehicleType === VehicleType.MOTORBIKE;
   const canBook = !user || (user.role !== UserRole.ADMIN && user.role !== UserRole.PARTNER);
-  
+  const isSoldOut = trip.availableSeats <= 0;
+  const distance = trip.distance ?? getRouteDistance(trip.from, trip.to);
+  const recommendation = distance > 0 ? recommendVehicleByDistance(distance) : null;
+  const isRecommended = recommendation ? recommendation.recommendedTypes.includes(trip.vehicleType) : false;
+
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-5 hover:shadow-md transition duration-200">
       <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
         
         <div className="flex gap-4 items-center">
-          <div className={`p-3 rounded-xl ${isPlane ? 'bg-sky-100 text-sky-600' : 'bg-orange-100 text-orange-600'}`}>
-            {isPlane ? <Plane className="h-6 w-6" /> : <Bus className="h-6 w-6" />}
+          <div className={`p-3 rounded-xl ${isPlane ? 'bg-sky-100 text-sky-600' : isMotorbike ? 'bg-emerald-100 text-emerald-600' : 'bg-orange-100 text-orange-600'}`}>
+            {isPlane ? <Plane className="h-6 w-6" /> : isMotorbike ? <Bike className="h-6 w-6" /> : <Bus className="h-6 w-6" />}
           </div>
           <div>
-            <div className="flex items-center gap-2 mb-1">
+            <div className="flex flex-wrap items-center gap-2 mb-1">
               <span className="font-bold text-lg text-slate-800">{trip.time}</span>
               <div className="h-[2px] w-8 bg-slate-200"></div>
               <span className="text-sm text-slate-500">{trip.duration}</span>
+              {distance > 0 && (
+                <span className="text-xs font-semibold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">
+                  ~{distance} km
+                </span>
+              )}
+              {isRecommended && (
+                <span className="text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded-full inline-flex items-center gap-1">
+                  <Sparkles className="h-3 w-3" /> Đề xuất phù hợp
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-1 text-slate-600">
               <span className="font-medium">{trip.from}</span>
               <span className="text-slate-400">→</span>
               <span className="font-medium">{trip.to}</span>
             </div>
-            <p className="text-xs text-slate-400 mt-1">{trip.vehicleType} • {trip.date}</p>
+            <p className="text-xs text-slate-400 mt-1">
+              {trip.vehicleType} • {trip.date} •{' '}
+              <span className={isSoldOut ? 'text-red-500 font-semibold' : 'text-emerald-600 font-semibold'}>
+                {isSoldOut ? 'Hết chỗ' : `Còn ${trip.availableSeats} chỗ`}
+              </span>
+            </p>
           </div>
         </div>
 
@@ -44,10 +65,15 @@ export const TripCard: React.FC<{ trip: Trip, onBook: (t: Trip) => void, onViewD
             </button>
             {canBook && (
               <button 
+                disabled={isSoldOut}
                 onClick={() => onBook(trip)}
-                className="bg-blue-50 text-blue-600 hover:bg-blue-100 px-4 py-2 rounded-lg text-sm font-semibold transition"
+                className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${
+                  isSoldOut
+                    ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                    : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+                }`}
               >
-                Chọn chuyến
+                {isSoldOut ? 'Hết chỗ' : 'Chọn chuyến'}
               </button>
             )}
           </div>

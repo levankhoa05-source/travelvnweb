@@ -36,7 +36,7 @@ import {
   Briefcase
 } from 'lucide-react';
 import { Trip, User, UserRole, VehicleType, Ticket, Hotel, TripStop, AppView, SearchMode } from './types';
-import { generatePartners, generateTrips, generateHotels, generateTripStops, CITIES } from './lib/mockData';
+import { generatePartners, generateTrips, generateHotels, generateTripStops, getRouteDistance, evaluateCancellationPolicy, CITIES } from './lib/mockData';
 
 import { Navbar, Footer, Toast, ToastType } from './components/Layout';
 import { AdminDashboard, PartnerDashboard } from './components/Dashboards';
@@ -74,6 +74,8 @@ function App() {
 
   const [searchMode, setSearchMode] = useState<SearchMode>('transport');
   const [currentSearchType, setCurrentSearchType] = useState('all'); 
+  const [searchDistance, setSearchDistance] = useState<number | null>(null);
+  const [selectedCheckInDate, setSelectedCheckInDate] = useState<string>('');
   const [isSearching, setIsSearching] = useState(false); 
   
   const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
@@ -172,10 +174,14 @@ function App() {
       ...tripData,
       vehicleId: `v-partner-${Date.now()}`,
       availableSeats: tripData.totalSeats,
+      distance: tripData.distance ?? getRouteDistance(tripData.from, tripData.to),
       stops: generateTripStops(tripData.from, tripData.to, tripData.time, tripData.duration, tripData.vehicleType),
-      amenities: ['Wifi', 'Nước uống', 'Cổng sạc', 'Bảo hiểm'],
+      amenities: tripData.vehicleType === VehicleType.MOTORBIKE
+        ? ['Mũ bảo hiểm', 'Áo mưa', 'Nước uống', 'Bảo hiểm']
+        : ['Wifi', 'Nước uống', 'Cổng sạc', 'Bảo hiểm'],
       status: 'PENDING',
-      partnerId: user.id
+      partnerId: user.id,
+      partnerName: user.name
     };
     
     setAllTrips(prev => [newTrip, ...prev]);
@@ -222,8 +228,16 @@ function App() {
     setSearchMode(mode);
 
     if (mode === 'transport') {
-      const { from, to, date, type, timeRange } = criteria;
-      setCurrentSearchType(type); 
+      const { from, to, date, type, timeRange, distance } = criteria;
+      setCurrentSearchType(type);
+      const computedDistance =
+        typeof distance === 'number' && Number.isFinite(distance) && distance > 0
+          ? distance
+          : from && to && from !== to
+            ? getRouteDistance(from, to)
+            : null;
+      setSearchDistance(computedDistance);
+
       // Filter only approved trips
       let results = allTrips.filter(t => t.status === 'APPROVED');
       
@@ -232,7 +246,13 @@ function App() {
       if (date) results = results.filter(t => t.date === date);
       
       if (type && type !== 'all') {
-        results = results.filter(t => t.vehicleType === type);
+        if (type === 'BUS_GROUP') {
+          results = results.filter(
+            t => t.vehicleType === VehicleType.BUS || t.vehicleType === VehicleType.COACH
+          );
+        } else {
+          results = results.filter(t => t.vehicleType === type);
+        }
       }
 
       if (timeRange && timeRange !== 'all') {
@@ -258,11 +278,27 @@ function App() {
 
     } else {
       // Hotel Search
-      const { city } = criteria;
+      const { city, checkIn } = criteria;
+      setSearchDistance(null);
+      setSelectedCheckInDate(checkIn || '');
       let results = allHotels;
       if (city) results = results.filter(h => h.city === city);
       setFilteredHotels(results);
     }
+  };
+
+  const handleToggleVip = () => {
+    setUser(prev => {
+      if (!prev) return prev;
+      const nextVip = !prev.isVip;
+      showNotification(
+        nextVip
+          ? 'Đã chuyển sang tài khoản Thành viên VIP.'
+          : 'Đã chuyển sang tài khoản Thành viên Thường.',
+        'info'
+      );
+      return { ...prev, isVip: nextVip };
+    });
   };
 
   const handleLogin = (newUser: User) => {
@@ -360,6 +396,7 @@ function App() {
         hotelId: selectedHotel.id,
         userId: user.id,
         roomType: 'Standard Room',
+        checkInDate: selectedCheckInDate || new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         bookingDate: new Date().toISOString(),
         status: 'BOOKED',
         hotelDetails: selectedHotel,
@@ -403,6 +440,8 @@ function App() {
             setSearchMode={setSearchMode}
             filteredTrips={filteredTrips}
             currentSearchType={currentSearchType}
+            searchDistance={searchDistance}
+            user={user}
             handleStartBooking={handleStartBooking}
             handleViewDetails={handleViewDetails}
             suggestedHotels={suggestedHotels}
@@ -448,7 +487,17 @@ function App() {
             user={user}
             tickets={tickets}
             setView={setView}
-            setCancellingTicketId={setCancellingTicketId}
+            setCancellingTicketId={(id) => {
+              const target = tickets.find(t => t.id === id);
+              if (target) {
+                const policy = evaluateCancellationPolicy(target, !!user?.isVip);
+                if (!policy.allowed) {
+                  showNotification(policy.message, 'error');
+                }
+              }
+              setCancellingTicketId(id);
+            }}
+            onToggleVip={handleToggleVip}
           />
         )}
 
@@ -479,55 +528,96 @@ function App() {
         )}
 
         {view === 'promotions' && (
-          <PromotionsPage onCopy={handleCopyCode} savedPromos={savedPromos} />
+          <PromotionsPage onCopy={handleCopyCode} savedPromos={savedPromos} showNotification={showNotification} />
         )}
       </main>
 
       {/* Cancel Confirmation Modal */}
-      {cancellingTicketId && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl animate-in zoom-in duration-200">
-            <h3 className="text-xl font-bold text-slate-800 mb-2">Xác nhận hủy vé</h3>
-            <p className="text-slate-600 mb-6">Bạn có chắc chắn muốn hủy giao dịch này? Hành động này không thể hoàn tác.</p>
-            <div className="flex gap-3 justify-end">
-              <button 
-                onClick={() => setCancellingTicketId(null)}
-                className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg font-medium hover:bg-slate-200 transition"
-              >
-                Đóng
-              </button>
-              <button 
-                onClick={async () => {
-                  const ticketToCancel = tickets.find(t => t.id === cancellingTicketId);
-                  
-                  // MẸO: Nếu muốn kết nối Database để hủy vé thì bạn bỏ comment đoạn fetch dưới đây
-                  /*
-                  try {
-                    await fetch(`/api/tickets/${cancellingTicketId}`, {
-                      method: 'PATCH',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ status: 'CANCELLED' })
-                    });
-                  } catch (e) {
-                    console.error('Lỗi khi hủy vé:', e);
-                  }
-                  */
+      {cancellingTicketId && (() => {
+        const ticketToCancel = tickets.find(t => t.id === cancellingTicketId);
+        if (!ticketToCancel) return null;
+        const policy = evaluateCancellationPolicy(ticketToCancel, !!user?.isVip);
 
-                  if (ticketToCancel && ticketToCancel.tripId) {
-                    setAllTrips(prev => prev.map(t => t.id === ticketToCancel.tripId ? { ...t, availableSeats: t.availableSeats + 1 } : t));
-                  }
-                  setTickets(prev => prev.map(t => t.id === cancellingTicketId ? { ...t, status: 'CANCELLED' } : t));
-                  setCancellingTicketId(null);
-                  showNotification('Đã hủy thành công.', 'success');
-                }}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition"
-              >
-                Đồng ý hủy
-              </button>
+        return (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl animate-in zoom-in duration-200">
+              <h3 className="text-xl font-bold text-slate-800 mb-2">
+                {policy.allowed ? 'Xác nhận hủy vé & hoàn tiền' : 'Không thể hủy vé'}
+              </h3>
+
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 mb-4 space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Trạng thái vé:</span>
+                  <span className="font-semibold text-slate-800">{ticketToCancel.status}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Trước giờ khởi hành:</span>
+                  <span className={`font-semibold ${policy.isOver24h ? 'text-emerald-600' : 'text-amber-600'}`}>
+                    {policy.hoursRemaining !== null
+                      ? `${Math.max(0, Math.floor(policy.hoursRemaining))} giờ (${policy.isOver24h ? '≥ 24h' : '< 24h'})`
+                      : 'N/A'}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Hạng thành viên:</span>
+                  <span className={`font-semibold ${policy.isVip ? 'text-amber-600' : 'text-slate-700'}`}>
+                    {policy.isVip ? 'Thành viên VIP' : 'Thành viên Thường'}
+                  </span>
+                </div>
+                {policy.allowed && (
+                  <div className="flex justify-between pt-2 border-t border-slate-200">
+                    <span className="font-semibold text-slate-700">Tiền hoàn lại ({policy.refundPercent}%):</span>
+                    <span className="font-bold text-emerald-600">
+                      {policy.refundAmount.toLocaleString()} đ
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <div className={`p-3 rounded-xl text-sm mb-6 border ${
+                policy.allowed
+                  ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                  : 'bg-red-50 border-red-200 text-red-700'
+              }`}>
+                {policy.message}
+              </div>
+
+              <div className="flex gap-3 justify-end">
+                <button 
+                  onClick={() => setCancellingTicketId(null)}
+                  className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg font-medium hover:bg-slate-200 transition"
+                >
+                  Đóng
+                </button>
+                {policy.allowed && (
+                  <button 
+                    onClick={async () => {
+                      if (ticketToCancel.tripId) {
+                        setAllTrips(prev => prev.map(t => t.id === ticketToCancel.tripId ? { ...t, availableSeats: t.availableSeats + 1 } : t));
+                      }
+                      setTickets(prev => prev.map(t => t.id === cancellingTicketId ? {
+                        ...t,
+                        status: 'CANCELLED',
+                        refundPercent: policy.refundPercent,
+                        refundAmount: policy.refundAmount,
+                        cancelReason: policy.message
+                      } : t));
+                      setCancellingTicketId(null);
+                      showNotification(
+                        `Đã hủy vé thành công! Hoàn ${policy.refundPercent}% (${policy.refundAmount.toLocaleString()} đ).`,
+                        'success'
+                      );
+                    }}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition"
+                  >
+                    Đồng ý hủy
+                  </button>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       <Footer />
 
